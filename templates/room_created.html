@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div style="border:1px solid #ddd; padding:12px; border-radius:10px; margin-top:12px;">
+        <p><b>Room berhasil dibuat!</b></p>
+        <p>ID: <code>{{ room_id }}</code></p>
+        <p>PIN: <code>{{ room_key }}</code></p>
+        <p>
+            <a href="/circle-room/{{ room_id }}" target="_blank">Buka Game</a>
+        </p>
+        <small>Bagikan ID & PIN ke temanmu untuk join.</small>
+    </div>
+
+</body>
+</html>

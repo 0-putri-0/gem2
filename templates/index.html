@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Polling & Rooms</title>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 720px; margin: 24px auto; }
+    .card { border:1px solid #ddd; padding:16px; border-radius:12px; margin-bottom:16px; }
+    input, button { padding:10px; border-radius:8px; border:1px solid #ccc; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Vote</h2>
+    <div class="row">
+      <button data-option="1">Option 1</button>
+      <button data-option="2">Option 2</button>
+    </div>
+    <p>Option 1: <span id="option1-count">{{ votes["option1"] }}</span></p>
+    <p>Option 2: <span id="option2-count">{{ votes["option2"] }}</span></p>
+  </div>
+
+  <div class="card">
+    <h2>Buat Room Game (2 Player)</h2>
+    <label><input type="checkbox" id="vsComputer" /> vs Computer</label>
+    <div>
+      <button id="createRoomBtn">Buat Room</button>
+    </div>
+    <div id="createResult"></div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    socket.on("vote_count", (data) => {
+      document.getElementById("option1-count").innerText = data.option1;
+      document.getElementById("option2-count").innerText = data.option2;
+    });
+
+    document.querySelectorAll("button[data-option]").forEach(btn => {
+      btn.addEventListener("click", function(){
+        socket.emit("vote", { option: "option" + this.dataset.option });
+      });
+    });
+
+    document.getElementById("createRoomBtn").onclick = async () => {
+      const vsComputer = document.getElementById("vsComputer").checked;
+      const res = await fetch("/create-circle-room", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ vs_computer: vsComputer })
+      });
+      const html = await res.text();
+      document.getElementById("createResult").innerHTML = html;
+    };
+  </script>
+</body>
+</html>

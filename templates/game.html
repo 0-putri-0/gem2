@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Realtime Circle Game</title>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <style>
+    html, body { margin:0; height:100%; background:#111; color:#eee; font-family:system-ui, Arial;}
+    #overlay {
+      position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.75);
+    }
+    canvas { display:block; width:100%; height:100%; }
+    .panel { background:#1d1d1d; padding:18px; border-radius:14px; width: min(420px, 90vw); }
+    input, button { width:100%; padding:10px; margin:6px 0; border-radius:10px; border:1px solid #444; background:#111; color:#eee; }
+    .error { color: #ff7b7b; min-height: 1.2em;}
+  </style>
+</head>
+<body>
+<div id="overlay">
+  <div class="panel">
+    <h3>Masuk ke Room</h3>
+    <input id="username" placeholder="Username" />
+    <input id="roomId" placeholder="Room ID" value="{{ room_id }}" />
+    <input id="roomKey" placeholder="PIN (6 digit)" />
+    <button id="joinBtn">Join</button>
+    <div class="error" id="err"></div>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+<script>
+  const socket = io();
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let players = {};
+  let myColor = "#"+Math.floor(Math.random()*16777215).toString(16);
+
+  function render() {
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    for (let id in players) {
+      const p = players[id];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 20, 0, Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      ctx.closePath();
+      // label
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(p.username || (p.is_bot ? "BOT" : "P"), p.x - 18, p.y - 26);
+    }
+    requestAnimationFrame(render);
+  }
+  render();
+
+  socket.on("update_players", (data) => {
+    players = data || {};
+  });
+
+  socket.on("join_error", (payload) => {
+    document.getElementById("err").innerText = payload?.message || "Join gagal.";
+  });
+
+  // Join flow
+  document.getElementById("joinBtn").onclick = () => {
+    const username = document.getElementById("username").value || "Player";
+    const room_id = document.getElementById("roomId").value.trim();
+    const room_key = document.getElementById("roomKey").value.trim();
+
+    if (!room_id || !room_key) {
+      document.getElementById("err").innerText = "Isi Room ID dan PIN.";
+      return;
+    }
+
+    socket.emit("join_room_game", {
+      room_id, room_key, username, color: myColor
+    });
+
+    // kalau berhasil, server akan langsung push update_players; kita tutup overlay kecil jeda
+    setTimeout(() => {
+      document.getElementById("overlay").style.display = "none";
+    }, 200);
+  };
+
+  // Move
+  window.addEventListener("mousemove", (e) => {
+    const room_id = document.getElementById("roomId").value.trim();
+    if (!room_id) return;
+    socket.emit("move_circle", { room_id, x: e.clientX, y: e.clientY });
+  });
+
+  // Resize
+  window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+</script>
+</body>
+</html>
